@@ -3,7 +3,9 @@ package golangcontext
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"testing"
+	"time"
 )
 
 // Context
@@ -81,6 +83,78 @@ func TestContextWithValue(t *testing.T) {
 	// fmt.Println("Context D:", contextD.Value("d"))
 	// fmt.Println("Context E:", contextE.Value("e"))
 
+}
+
+// Context with Cancel
+// context can have cancel signal, we can cancel the context with func -> cancel()
+// we can check if the context is canceled or not with func -> Err()
+// we can get the cancel signal with func -> Done()
+
+// func TestContextWithCancel(t *testing.T) {
+
+// 	// create new context
+// 	background := context.Background()
+
+// 	// add cancel signal to context
+// 	context, cancel := context.WithCancel(background)
+
+// 	// cancel the context
+// 	cancel()
+
+// 	// check if the context is canceled or not
+// 	fmt.Println("Context:", context.Err())
+// 	fmt.Println("Context Done:", context.Done())
+
+// }
+
+func CreateCounter(ctx context.Context) chan int {
+
+	destination := make(chan int)
+
+	go func ()  {
+		defer close(destination)
+
+		counter := 1
+		for {
+			select {
+			case <- ctx.Done():
+				return
+			default:
+				destination <- counter
+				counter++
+			}
+			
+		}
+		
+	}()
+
+	return destination	
+}
+
+func TestContextWithCancel(t *testing.T) {
+
+	fmt.Println("Total goroutines start:", runtime.NumGoroutine())
+
+	parentCtx := context.Background()
+	// add cancel signal to context
+	ctx, cancel := context.WithCancel(parentCtx)
+
+	destination := CreateCounter(ctx)
+
+	fmt.Println("Total goroutines when CreateCounter running:", runtime.NumGoroutine())
+	
+	for n := range destination {
+		fmt.Println("Counter:", n)
+		if n == 10 {
+			break
+		}
+
+	}
+	cancel()
+
+	time.Sleep(2 * time.Second) // to make sure goroutine have time to close
+	
+	fmt.Println("Total goroutines end:", runtime.NumGoroutine())
 }
 
 
