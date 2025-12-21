@@ -90,22 +90,22 @@ func TestContextWithValue(t *testing.T) {
 // we can check if the context is canceled or not with func -> Err()
 // we can get the cancel signal with func -> Done()
 
-// func TestContextWithCancel(t *testing.T) {
+func TestContextWithCancelAndErr(t *testing.T) {
 
-// 	// create new context
-// 	background := context.Background()
+	// create new context
+	background := context.Background()
 
-// 	// add cancel signal to context
-// 	context, cancel := context.WithCancel(background)
+	// add cancel signal to context
+	context, cancel := context.WithCancel(background)
 
-// 	// cancel the context
-// 	cancel()
+	// cancel the context
+	cancel()
 
-// 	// check if the context is canceled or not
-// 	fmt.Println("Context:", context.Err())
-// 	fmt.Println("Context Done:", context.Done())
+	// check if the context is canceled or not
+	fmt.Println("Context:", context.Err())
+	fmt.Println("Context Done:", context.Done())
 
-// }
+}
 
 func CreateCounter(ctx context.Context) chan int {
 
