@@ -122,6 +122,8 @@ func CreateCounter(ctx context.Context) chan int {
 			default:
 				destination <- counter
 				counter++
+
+				time.Sleep(2 * time.Second) // simulate long process
 			}
 			
 		}
@@ -154,6 +156,33 @@ func TestContextWithCancel(t *testing.T) {
 
 	time.Sleep(2 * time.Second) // to make sure goroutine have time to close
 	
+	fmt.Println("Total goroutines end:", runtime.NumGoroutine())
+}
+
+func TestContextWithTimeout(t *testing.T) {
+
+	// This context with timeout is good for handling long process that we want to limit the time to run
+	// for example, we call the external API that sometimes take too long to respond
+	// or we call database query that sometimes take too long to respond
+
+	fmt.Println("Total goroutines start:", runtime.NumGoroutine())
+	
+	parentCtx := context.Background()
+
+	// add timeout signal to context
+	// after 5 seconds, the context will be canceled automatically eventhough the CreateCounter functin is not finished yet
+	ctx, cancel := context.WithTimeout(parentCtx, 5 * time.Second)
+	defer cancel() // good practice to call cancel in defer to avoid memory leak eventhough the context already have timeout
+
+	destination := CreateCounter(ctx)
+	fmt.Println("Total goroutines running:", runtime.NumGoroutine())
+
+	for n := range destination {
+		fmt.Println("Counter:", n)
+	}
+
+	time.Sleep(2 * time.Second)
+
 	fmt.Println("Total goroutines end:", runtime.NumGoroutine())
 }
 
