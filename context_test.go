@@ -185,5 +185,34 @@ func TestContextWithTimeout(t *testing.T) {
 
 	fmt.Println("Total goroutines end:", runtime.NumGoroutine())
 }
+func TestContextWithDeadline(t *testing.T) {
+
+	// This context with deadline is good for handling long process that we want to limit the time to run
+	// for example, we call the external API that sometimes take too long to respond
+	// or we call database query that sometimes take too long to respond
+	// the difference between timeout and deadline is
+	// timeout is relative time from now
+	// deadline is absolute time (example: 1st Jan 2025 10:00 AM)
+
+	fmt.Println("Total goroutines start:", runtime.NumGoroutine())
+	
+	parentCtx := context.Background()
+
+	// add deadline signal to context
+	// after 5 seconds, the context will be canceled automatically eventhough the CreateCounter function is not finished yet
+	ctx, cancel := context.WithDeadline(parentCtx, time.Now().Add(5 * time.Second))
+	defer cancel() // good practice to call cancel in defer to avoid memory leak eventhough the context already have timeout
+
+	destination := CreateCounter(ctx)
+	fmt.Println("Total goroutines running:", runtime.NumGoroutine())
+
+	for n := range destination {
+		fmt.Println("Counter:", n)
+	}
+
+	time.Sleep(2 * time.Second)
+
+	fmt.Println("Total goroutines end:", runtime.NumGoroutine())
+}
 
 
