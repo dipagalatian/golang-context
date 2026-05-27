@@ -158,6 +158,44 @@ func TestContextWithCancelAndErr(t *testing.T) {
 
 }
 
+// example context with cancel to stop the long process in anothe goroutine
+// main func that create context with cancel
+func TestCtxWithCancelToStopLongProcess(t *testing.T) {
+	// create context with cancel
+	ctx := context.Background()
+	childCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// call the DBWorker func
+	go DBWorker(childCtx)
+	
+	// let the DBworker func run for 2 seconds
+	time.Sleep(2 * time.Second)
+
+	// cancel the context manually to stop the DBWorker func
+	fmt.Printf("MAIN: Canceling the context to stop the DBWorker...\n")
+	cancel()
+
+	// check if the context is canceled or not, this need for seeing the logs on case Done in select DBWorker
+	time.Sleep(500 * time.Millisecond)
+}
+
+// example of background worker goroutine that will cancel the process if the context is canceled
+func DBWorker(ctx context.Context) {
+	// loop to simulate long process and wait the cancel signal from context
+	for {
+		select {
+		case <- ctx.Done():
+			fmt.Println("DBWorker: Received cancel signal. Stopping the DB operation...")
+			return
+		default: 
+			fmt.Println("DBWorker: Running DB operation...")
+			time.Sleep(500 * time.Millisecond)
+		}
+	}
+
+}
+
 func CreateCounter(ctx context.Context) chan int {
 
 	destination := make(chan int)
