@@ -34,6 +34,20 @@ func TestContext(t *testing.T) {
 // we can add value to context with func -> WithValue(parent, key, value)
 // we can get value from context with func -> Value(context, key)
 
+func TestContextWithParentChildTimeout(t *testing.T) {
+	// create new context
+	rootCtx := context.Background()
+
+	// create child ctx with timeout
+	childCtx, cancel := context.WithTimeout(rootCtx, 2*time.Second)
+	defer cancel() // good practice to call cancel in defer to avoid memory leak eventhough the context already have timeout
+
+	// now we can pass the childCtx to another function that need context, and we can check if the context is canceled or not with func -> Err() or Done()
+	fmt.Println("Child Context Err:", childCtx.Err())
+	fmt.Println("Child Context Done:", childCtx.Done())
+	fmt.Println("Child context created successfully", childCtx)
+}
+
 func TestContextWithValue(t *testing.T) {
 
 	// create new context
@@ -83,6 +97,43 @@ func TestContextWithValue(t *testing.T) {
 	// fmt.Println("Context D:", contextD.Value("d"))
 	// fmt.Println("Context E:", contextE.Value("e"))
 
+}
+
+// Context with value pass to another func layers
+
+// Main func (controller layer func)
+
+// private type for key userId
+type contextKey string
+const userIdKey contextKey = "userId"
+
+func TestCtxWithValuePassToAnotherFunc(t *testing.T) {
+	// create context
+	rootCtx := context.Background()
+
+	// create value to the context
+	ctxWithUser := context.WithValue(rootCtx, userIdKey, "user_dipa_1234")
+
+	// pass the context to ProcessBooking func
+	ProcessBooking(ctxWithUser, "court_1")
+}
+
+// Service layer func (business logic func)
+func ProcessBooking(ctx context.Context, courtId string) {
+	fmt.Printf("Process booking for court %s...\n", courtId)
+
+	// pass the context to SaveToDatabase func
+	SaveToDatabase(ctx, courtId)
+}
+
+// Repository layer func (data access func)
+func SaveToDatabase(ctx context.Context, courtId string) {
+	// get the userId from context and validate it exist or not
+	if userId, ok := ctx.Value(userIdKey).(string); ok {
+		fmt.Printf("Saving booking for user %s and court %s to database...\n", userId, courtId)
+	} else {
+		fmt.Println("User ID not found in context, cannot save booking to database.")
+	}
 }
 
 // Context with Cancel
