@@ -196,6 +196,43 @@ func DBWorker(ctx context.Context) {
 
 }
 
+// Context with timeout
+// This example use case is for handling long process payment take before it canceled because of timeout
+func TestContextWithTimeoutToStopLongProcess(t *testing.T) {
+	ctx := context.Background()
+	ctxTimeout, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
+	fmt.Println("Starting payment verification with timeout...")
+	err := PaymentVerification(ctxTimeout)
+	if err != nil {
+		fmt.Println("Payment verification failed:", err)
+	} else {
+		fmt.Println("Payment verification succeeded.")
+	}
+}
+
+// payment verification func that will cancel the process if the context is canceled
+func PaymentVerification(ctx context.Context) error {
+	ch := make(chan string, 1)
+
+	go func() {
+		// change this to 3 seconds to simulate timeouts
+		// change this to 1 second to simulate success
+		time.Sleep(5 * time.Second)
+		ch <- "PAYMENT_VERIFIED"
+	}()
+
+	select {
+	case resuslt := <- ch:
+		fmt.Println("Payment verification result:", resuslt)
+		return nil
+	case <- ctx.Done():
+		fmt.Println("Payment verification canceled due to timeout.")
+		return ctx.Err()
+	}
+}
+
 func CreateCounter(ctx context.Context) chan int {
 
 	destination := make(chan int)
